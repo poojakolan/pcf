@@ -7,7 +7,7 @@ import xlsxwriter
 import httplib, urllib
 
 
-foundry_list = {'foundry-1': ['https://api.run.pivotal.io', 'Lakshmiredz@gmail.com', 'Pooja@123', 'concourse2', 'ci']}
+foundry_list = {'foundry-1': ['https://api.run.pivotal.io', 'admin', 'Password', 'test', 'test'
 timestamp_str = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
 
 workbook = xlsxwriter.Workbook('top_apps_'+timestamp_str+'.xlsx')
