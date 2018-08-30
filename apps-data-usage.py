@@ -5,9 +5,18 @@ import datetime
 import time
 import xlsxwriter
 import httplib, urllib
+import math
 
+def convert_size(size_bytes):
+   if size_bytes == 0:
+       return "0B"
+   size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+   i = int(math.floor(math.log(size_bytes, 1024)))
+   p = math.pow(1024, i)
+   s = round(size_bytes / p, 2)
+   return "%s %s" % (s, size_name[i])
 
-foundry_list = {'foundry-1': ['https://api.run.pivotal.io', 'admin', 'Password', 'test', 'test'
+foundry_list = {'foundry-1': ['https://api.run.pivotal.io', 'Lakshmiredz@gmail.com', 'Pooja@123', 'concourse2', 'ci']}
 timestamp_str = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
 
 workbook = xlsxwriter.Workbook('top_apps_'+timestamp_str+'.xlsx')
@@ -78,19 +87,25 @@ for foundry in foundry_list:
                 headers = {"Authorization": token}
                 conn = httplib.HTTPConnection("console.run.pivotal.io")
                 conn.request("GET", "/proxy/api/v3/apps/"+app['metadata']['guid']+"/processes/web/stats", params, headers)
+                print("console.run.pivotal.io"+"/proxy/api/v3/apps/"+app['metadata']['guid']+"/processes/web/stats")
                 response = conn.getresponse()
                 print response.status, response.reason
                 data = response.read()
                 json_stats = json.loads(data)
-                usage_data = json_stats["resources"][0]['usage']
+                usage_data = json_stats["resources"][0]
                 conn.close()
                 worksheet.write(row, col,     app['entity']['name'])
                 worksheet.write(row, col + 1, app['entity']['memory'])
                 worksheet.write(row, col + 2, app['entity']['instances'])
                 worksheet.write(row, col + 3, app['entity']['disk_quota'])
                 worksheet.write(row, col + 4, app['entity']['state'])
-                worksheet.write(row, col+5, usage_data['cpu'])
-                worksheet.write(row, col+6, usage_data['mem'])
-                worksheet.write(row, col+7, usage_data['disk'])
+                if(usage_data['state'] == "DOWN"):
+                    worksheet.write(row, col+5, "NA")
+                    worksheet.write(row, col+6, "NA")
+                    worksheet.write(row, col+7, "NA")
+                else:
+                    worksheet.write(row, col+5, usage_data['cpu'])
+                    worksheet.write(row, col+6, usage_data['mem'])
+                    worksheet.write(row, col+7, usage_data['disk'])
                 row += 1
 workbook.close()
