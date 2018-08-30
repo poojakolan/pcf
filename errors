@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "apps1.py", line 107, in <module>
+    worksheet.write(row, col+5, usage_data['cpu'])
+KeyError: 'cpu'
+Exception Exception: Exception('Exception caught in workbook destructor. Explicit close() may be required for workbook.',) in <bound method Workbook.__del__ of <xlsxwriter.workbook.Workbook object at 0x7fb8c886aad0>> ignored
