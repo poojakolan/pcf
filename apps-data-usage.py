@@ -16,7 +16,7 @@ def convert_size(size_bytes):
    s = round(size_bytes / p, 2)
    return "%s %s" % (s, size_name[i])
 
-foundry_list = {'foundry-1': ['https://api.run.pivotal.io', 'Lakshmiredz@gmail.com', 'Pooja@123', 'concourse2', 'ci']}
+foundry_list = {'foundry-1': ['https://api.run.pivotal.io', 'Lakshmiredz@gmail.com', 'Pooja@123', 'concourse2', 'ci', 'console.run.pivotal.io']}
 timestamp_str = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
 
 workbook = xlsxwriter.Workbook('top_apps_'+timestamp_str+'.xlsx')
@@ -85,7 +85,7 @@ for foundry in foundry_list:
             for app in sorted_resources: 
                 params = urllib.urlencode({})
                 headers = {"Authorization": token}
-                conn = httplib.HTTPConnection("console.run.pivotal.io")
+                conn = httplib.HTTPConnection(flist[5])
                 conn.request("GET", "/proxy/api/v3/apps/"+app['metadata']['guid']+"/processes/web/stats", params, headers)
                 print("console.run.pivotal.io"+"/proxy/api/v3/apps/"+app['metadata']['guid']+"/processes/web/stats")
                 response = conn.getresponse()
