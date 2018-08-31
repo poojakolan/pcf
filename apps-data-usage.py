@@ -6,17 +6,9 @@ import time
 import xlsxwriter
 import httplib, urllib
 import math
+import bitmath
 
-def convert_size(size_bytes):
-   if size_bytes == 0:
-       return "0B"
-   size_name = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
-   i = int(math.floor(math.log(size_bytes, 1024)))
-   p = math.pow(1024, i)
-   s = round(size_bytes / p, 2)
-   return "%s %s" % (s, size_name[i])
-
-foundry_list = {'foundry-1': ['https://api.run.pivotal.io', 'Lakshmiredz@gmail.com', 'Pooja@123', 'concourse2', 'ci', 'console.run.pivotal.io']}
+foundry_list = {'foundry-1': ['https://api.run.pivotal.io', 'Lakshmiredz@gmail.com', 'Pooja@123', 'concourse2', 'ci', "console.run.pivotal.io"]}
 timestamp_str = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
 
 workbook = xlsxwriter.Workbook('top_apps_'+timestamp_str+'.xlsx')
@@ -87,28 +79,33 @@ for foundry in foundry_list:
                 headers = {"Authorization": token}
                 conn = httplib.HTTPConnection(flist[5])
                 conn.request("GET", "/proxy/api/v3/apps/"+app['metadata']['guid']+"/processes/web/stats", params, headers)
-                print("console.run.pivotal.io"+"/proxy/api/v3/apps/"+app['metadata']['guid']+"/processes/web/stats")
                 response = conn.getresponse()
                 print response.status, response.reason
                 data = response.read()
-                json_stats = json.loads(data)                
-                usage_data = json_stats["resources"][0]
                 conn.close()
+                json_stats = json.loads(data)
+                cpu_total = 0
+                mem_total = 0
+                disk_total = 0
+                for resource in json_stats["resources"]:
+                    if(resource['state'] == "RUNNING"):
+                        cpu_total = cpu_total + resource['usage']['cpu']
+                        mem_total = mem_total + resource['usage']['mem']
+                        disk_total = resource['usage']['cpu'] + resource['usage']['disk']
+
+                #usage_data = json_stats["resources"][0]
                 worksheet.write(row, col,     app['entity']['name'])
                 worksheet.write(row, col + 1, app['entity']['memory'])
                 worksheet.write(row, col + 2, app['entity']['instances'])
                 worksheet.write(row, col + 3, app['entity']['disk_quota'])
                 worksheet.write(row, col + 4, app['entity']['state'])
-                if(usage_data['state'] == "DOWN"):
+                if(cpu_total == 0 and mem_total == 0 and disk_total==0):
                     worksheet.write(row, col+5, "NA")
                     worksheet.write(row, col+6, "NA")
                     worksheet.write(row, col+7, "NA")
                 else:
-                    print(app['entity']['name']+"   **** app name UP")
-                    print(json_stats)
-                    usage_details = usage_data['usage']
-                    worksheet.write(row, col+5, usage_details['cpu'])
-                    worksheet.write(row, col+6, usage_details['mem'])
-                    worksheet.write(row, col+7, usage_details['disk'])
+                    worksheet.write(row, col+5, cpu_total)
+                    worksheet.write(row, col+6, mem_total)
+                    worksheet.write(row, col+7, disk_total)
                 row += 1
 workbook.close()
