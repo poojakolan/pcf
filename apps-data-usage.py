@@ -92,9 +92,10 @@ for foundry in foundry_list:
                 print response.status, response.reason
                 data = response.read()
                 json_stats = json.loads(data)
-                usage_data = json_stats["resources"][0]
+                print(json_stats)
+                #usage_data = json_stats["resources"][0]
                 conn.close()
-                worksheet.write(row, col,     app['entity']['name'])
+                '''worksheet.write(row, col,     app['entity']['name'])
                 worksheet.write(row, col + 1, app['entity']['memory'])
                 worksheet.write(row, col + 2, app['entity']['instances'])
                 worksheet.write(row, col + 3, app['entity']['disk_quota'])
@@ -107,5 +108,5 @@ for foundry in foundry_list:
                     worksheet.write(row, col+5, usage_data['cpu'])
                     worksheet.write(row, col+6, usage_data['mem'])
                     worksheet.write(row, col+7, usage_data['disk'])
-                row += 1
+                row += 1'''
 workbook.close()
