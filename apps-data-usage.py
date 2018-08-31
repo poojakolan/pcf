@@ -92,7 +92,9 @@ for foundry in foundry_list:
                 print response.status, response.reason
                 data = response.read()
                 json_stats = json.loads(data)
+                print(app['entity']['name']+"   **** app name"+)
                 print(json_stats)
+                
                 #usage_data = json_stats["resources"][0]
                 conn.close()
                 '''worksheet.write(row, col,     app['entity']['name'])
