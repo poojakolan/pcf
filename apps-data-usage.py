@@ -106,8 +106,9 @@ for foundry in foundry_list:
                 else:
                     print(app['entity']['name']+"   **** app name UP")
                     print(json_stats)
-                    worksheet.write(row, col+5, usage_data['cpu'])
-                    worksheet.write(row, col+6, usage_data['mem'])
-                    worksheet.write(row, col+7, usage_data['disk'])
+                    usage_details = usage_data['usage']
+                    worksheet.write(row, col+5, usage_details['cpu'])
+                    worksheet.write(row, col+6, usage_details['mem'])
+                    worksheet.write(row, col+7, usage_details['disk'])
                 row += 1
 workbook.close()
