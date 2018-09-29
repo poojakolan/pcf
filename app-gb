@@ -1,3 +1,16 @@
+import subprocess
+import shlex
+import json
+import datetime
+import time
+import xlsxwriter
+import httplib, urllib
+import math
+import bitmath
+
+
+
+foundry_list = {'HDC1':'xxxx', 'admin', 'xxx', 'concourse-org', 'concourse-space', 'apps.com']
 timestamp_str = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d-%H:%M:%S')
 
 
