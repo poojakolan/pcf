@@ -1,0 +1,16 @@
+12
+('foundry value', 1)
+('org id found value', 9)
+('space id found value', 1)
+(200, 'OK')
+Traceback (most recent call last):
+  File "mysql-app.py", line 163, in <module>
+    mycursor.execute(insert_app_sql, (app['entity']['name'],app['entity']['memory'],app['entity']['instances'],app['entity']['disk_quota'],app['entity']['state'],cpu_total,mem_total,disk_total, space_id))
+  File "/usr/lib/python2.7/site-packages/mysql/connector/cursor.py", line 491, in execute
+    self._handle_result(self._connection.cmd_query(stmt))
+  File "/usr/lib/python2.7/site-packages/mysql/connector/connection.py", line 635, in cmd_query
+    statement))
+  File "/usr/lib/python2.7/site-packages/mysql/connector/connection.py", line 553, in _handle_result
+    raise errors.get_exception(packet)
+mysql.connector.errors.IntegrityError: 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`grafana`.`pcf_apps`, CONSTRAINT `space_fkey` FOREIGN KEY (`space_id`) REFERENCES `pcf_space` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION)
+Exception Exception: Exception('Exception caught in workbook destructor. Explicit close() may be required for workbook.',) in <bound method Workbook.__del__ of <xlsxwriter.workbook.Workbook object at 0x7fb6fee67b10>> ignored
