@@ -1,0 +1,23 @@
+12
+(200, 'OK')
+(200, 'OK')
+(200, 'OK')
+(200, 'OK')
+(200, 'OK')
+(200, 'OK')
+(200, 'OK')
+(200, 'OK')
+(200, 'OK')
+(200, 'OK')
+(200, 'OK')
+Traceback (most recent call last):
+  File "test-db.py", line 107, in <module>
+    mycursor.execute(insert_space_sql, (space_obj['entity']['name'],org_id))
+  File "/usr/lib/python2.7/site-packages/mysql/connector/cursor.py", line 491, in execute
+    self._handle_result(self._connection.cmd_query(stmt))
+  File "/usr/lib/python2.7/site-packages/mysql/connector/connection.py", line 635, in cmd_query
+    statement))
+  File "/usr/lib/python2.7/site-packages/mysql/connector/connection.py", line 553, in _handle_result
+    raise errors.get_exception(packet)
+mysql.connector.errors.IntegrityError: 1452 (23000): Cannot add or update a child row: a foreign key constraint fails (`grafana`.`pcf_space`, CONSTRAINT `org_fkey` FOREIGN KEY (`org_id`) REFERENCES `pcf_org` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION)
+Exception Exception: Exception('Exception caught in workbook destructor. Explicit close() may be required for workbook.',) in <bound method Workbook.__del__ of <xlsxwriter.workbook.Workbook object at 0x7fea49451b10>> ignored
