@@ -166,7 +166,7 @@ for foundry in foundry_list:
                 app_id = 0
                 if(len(myresult) == 1):
                     print('app value found', myresult[0][0])
-                    app_id = mycursor.lastrowid
+                    app_id = myresult[0][0]
                     db.commit()
                     mycursor.execute(update_app_sql, (app['entity']['name'],app['entity']['memory'],app['entity']['instances'],app['entity']['disk_quota'],app['entity']['state'],cpu_total,mem_total,disk_total, space_id, app_id, space_id))
                     db.commit()
