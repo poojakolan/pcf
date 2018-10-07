@@ -17,8 +17,9 @@ workbook = xlsxwriter.Workbook('top_apps_'+timestamp_str+'.xlsx')
 bold = workbook.add_format({'bold': True})
 
 get_foundry_id_sql = "SELECT id FROM foundries WHERE foundry_name = %s"
-get_org_id_sql = "SELECT id FROM pcf_org WHERE org_name = %s"
-get_space_id_sql = "SELECT id FROM pcf_space WHERE space_name = %s"
+get_org_id_sql = "SELECT id FROM pcf_org WHERE org_name = %s and foundry_id = %s"
+get_space_id_sql = "SELECT id FROM pcf_space WHERE space_name = %s and org_id = %s"
+get_app_id_sql = "SELECT id FROM pcf_apps WHERE name = %s and space_id = %s"
 
 insert_foundry_sql = ("INSERT INTO foundries "
                "(foundry_name) "
@@ -33,6 +34,7 @@ insert_space_sql = ("INSERT INTO pcf_space "
 insert_app_sql = ("INSERT INTO pcf_apps "
                "(name, memory, instances, disk_space, state, cpu_used, memory_used, disk_used, space_id) "
                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)")
+update_app_sql = "UPDATE pcf_apps SET name = %s, memory = %s , instances = %s , disk_space = %s, state = %s, cpu_used = %s, memory_used = %s, disk_used = %s, space_id = %s where id = %s and space_id = %s"
 
 db = mysql.connector.connect(
   host="localhost",
@@ -81,7 +83,7 @@ for foundry in foundry_list:
         db.commit()
     for org_obj in org_json['resources']:
         org_id = 0 
-        mycursor.execute(get_org_id_sql, (org_obj['entity']['name'],))
+        mycursor.execute(get_org_id_sql, (org_obj['entity']['name'], foundry_id,))
         myresult = mycursor.fetchall()
         if(len(myresult) == 1):
             org_id = myresult[0][0]
@@ -97,10 +99,10 @@ for foundry in foundry_list:
 
         for space_obj in spaces_json['resources']:
             space_id = 0 
-            mycursor.execute(get_space_id_sql, (space_obj['entity']['name'],))
+            mycursor.execute(get_space_id_sql, (space_obj['entity']['name'],org_id,))
             myresult = mycursor.fetchall()
             if(len(myresult) == 1):
-                org_id = myresult[0][0]
+                space_id = myresult[0][0]
                 print('space id found value', myresult[0][0])
             else:
                 mycursor.execute(insert_space_sql, (space_obj['entity']['name'],org_id))
@@ -159,9 +161,19 @@ for foundry in foundry_list:
                 worksheet.write(row, col + 2, app['entity']['instances'])
                 worksheet.write(row, col + 3, app['entity']['disk_quota'])
                 worksheet.write(row, col + 4, app['entity']['state'])
-                mycursor.execute(insert_app_sql, (app['entity']['name'],app['entity']['memory'],app['entity']['instances'],app['entity']['disk_quota'],app['entity']['state'],cpu_total,mem_total,disk_total, space_id))
-                org_id = mycursor.lastrowid
-                db.commit()
+                mycursor.execute(get_app_id_sql, (app['entity']['name'],space_id,))
+                myresult = mycursor.fetchall()
+                app_id = 0
+                if(len(myresult) == 1):
+                    print('app value found', myresult[0][0])
+                    app_id = myresult[0][0]
+                    db.commit()
+                    mycursor.execute(update_app_sql, (app['entity']['name'],app['entity']['memory'],app['entity']['instances'],app['entity']['disk_quota'],app['entity']['state'],cpu_total,bitmath.Byte(mem_total).to_MB().value,bitmath.Byte(disk_total).to_MB().value, space_id, app_id, space_id))
+                    db.commit()
+                else:
+                    mycursor.execute(insert_app_sql, (app['entity']['name'],app['entity']['memory'],app['entity']['instances'],app['entity']['disk_quota'],app['entity']['state'],cpu_total,bitmath.Byte(mem_total).to_MB().value,bitmath.Byte(disk_total).to_MB().value, space_id))
+                    app_id = mycursor.lastrowid
+                    db.commit()
 
                 if(cpu_total == 0 and mem_total == 0 and disk_total==0):
                     worksheet.write(row, col+5, "NA")
