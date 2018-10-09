@@ -36,6 +36,7 @@ insert_app_sql = ("INSERT INTO pcf_apps "
                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)")
 update_app_sql = "UPDATE pcf_apps SET name = %s, memory = %s , instances = %s , disk_space = %s, state = %s, cpu_used = %s, memory_used = %s, disk_used = %s, space_id = %s where id = %s and space_id = %s"
 
+truncate_apps = "TRUNCATE TABLE grafana.pcf_apps"
 db = mysql.connector.connect(
   host="localhost",
   user="root",
@@ -44,7 +45,8 @@ db = mysql.connector.connect(
 )
 
 mycursor = db.cursor()
-
+mycursor.execute(truncate_apps)
+db.commit()
 for foundry in foundry_list:
     flist = foundry_list[foundry]
     api = flist[0]
@@ -74,6 +76,7 @@ for foundry in foundry_list:
     foundry_id = 0
     mycursor.execute(get_foundry_id_sql, (foundry,))
     myresult = mycursor.fetchall()
+    db.commit()
     if(len(myresult) == 1):
         foundry_id = myresult[0][0]
         print('foundry value', myresult[0][0])
@@ -161,7 +164,7 @@ for foundry in foundry_list:
                 worksheet.write(row, col + 2, app['entity']['instances'])
                 worksheet.write(row, col + 3, app['entity']['disk_quota'])
                 worksheet.write(row, col + 4, app['entity']['state'])
-                mycursor.execute(get_app_id_sql, (app['entity']['name'],space_id,))
+                '''mycursor.execute(get_app_id_sql, (app['entity']['name'],space_id,))
                 myresult = mycursor.fetchall()
                 app_id = 0
                 if(len(myresult) == 1):
@@ -170,10 +173,10 @@ for foundry in foundry_list:
                     db.commit()
                     mycursor.execute(update_app_sql, (app['entity']['name'],app['entity']['memory'],app['entity']['instances'],app['entity']['disk_quota'],app['entity']['state'],cpu_total,mem_total,disk_total, space_id, app_id, space_id))
                     db.commit()
-                else:
-                    mycursor.execute(insert_app_sql, (app['entity']['name'],app['entity']['memory'],app['entity']['instances'],app['entity']['disk_quota'],app['entity']['state'],cpu_total,mem_total,disk_total, space_id))
-                    app_id = mycursor.lastrowid
-                    db.commit()
+                else:'''
+                mycursor.execute(insert_app_sql, (app['entity']['name'],app['entity']['memory'],app['entity']['instances'],app['entity']['disk_quota'],app['entity']['state'],cpu_total,mem_total,disk_total, space_id))
+                app_id = mycursor.lastrowid
+                db.commit()
 
                 if(cpu_total == 0 and mem_total == 0 and disk_total==0):
                     worksheet.write(row, col+5, "NA")
