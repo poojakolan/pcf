@@ -24,3 +24,7 @@ select foundry.foundry_name, apps.name,apps.memory,apps.instances,apps.disk_spac
 Singlestat graph
 
 select apps.memory_used as memory, UNIX_TIMESTAMP(apps.updated) as time_sec from grafana.foundries as foundry, grafana.pcf_apps as apps, grafana.pcf_org as orgs, grafana.pcf_space as spaces where apps.space_id = spaces.id and spaces.org_id = orgs.id and orgs.foundry_id = foundry.id;
+
+
+ALTER TABLE `grafana`.`pcf_apps` 
+ADD COLUMN `last_updated1` DATETIME NOT NULL AFTER `last_updated`;
