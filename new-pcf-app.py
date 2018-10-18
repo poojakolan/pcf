@@ -22,21 +22,25 @@ get_space_id_sql = "SELECT id FROM pcf_space WHERE space_name = %s and org_id = 
 get_app_id_sql = "SELECT id FROM pcf_apps WHERE name = %s and space_id = %s"
 
 insert_foundry_sql = ("INSERT INTO foundries "
-               "(foundry_name) "
-               "VALUES (%s)")
+               "(foundry_name, memory_consumption_percent, last_updated) "
+               "VALUES (%s, %s, %s)")
 insert_org_sql = ("INSERT INTO pcf_org "
-               "(org_name, foundry_id) "
-               "VALUES (%s, %s)")
+               "(org_name, foundry_id, memory_consumption_percent, last_updated) "
+               "VALUES (%s, %s, %s, %s)")
 insert_space_sql = ("INSERT INTO pcf_space "
-               "(space_name,org_id) "
-               "VALUES (%s, %s)")
+               "(space_name,org_id, memory_consumption_percent, last_updated) "
+               "VALUES (%s, %s, %s, %s)")
 
 insert_app_sql = ("INSERT INTO pcf_apps "
-               "(name, memory, instances, disk_space, state, cpu_used, memory_used, disk_used, space_id) "
-               "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)")
+               "(name, memory, instances, disk_space, state, cpu_used, memory_used, disk_used, space_id, memory_consumption_percent, last_updated) "
+               "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)")
 update_app_sql = "UPDATE pcf_apps SET name = %s, memory = %s , instances = %s , disk_space = %s, state = %s, cpu_used = %s, memory_used = %s, disk_used = %s, space_id = %s where id = %s and space_id = %s"
-
+update_foundry_mempry_percent = "UPDATE foundries SET memory_consumption_percent = %s, last_updated = %s"
+app_memory_percent = "UPDATE pcf_apps SET memory_consumption_percent = %s, last_updated = %s"
 truncate_apps = "TRUNCATE TABLE grafana.pcf_apps"
+truncate_orgs = "TRUNCATE TABLE grafana.pcf_org"
+truncate_space = "TRUNCATE TABLE grafana.pcf_space"
+
 db = mysql.connector.connect(
   host="localhost",
   user="root",
@@ -48,6 +52,8 @@ mycursor = db.cursor()
 mycursor.execute(truncate_apps)
 db.commit()
 for foundry in foundry_list:
+    foundry_avail_mem = 0
+    foundry_app_mem_usage = 0
     flist = foundry_list[foundry]
     api = flist[0]
     user = flist[1]
@@ -57,6 +63,7 @@ for foundry in foundry_list:
 
     login_command = 'cf login -a ' + api + ' -u ' + user + ' -p ' + pwd + ' -o ' + org + ' -s ' + space + ' --skip-ssl-validation'
     list_all_orgs = 'cf curl /v2/organizations'+'?results-per-page=100'
+    get_org_quota = 'cf curl /v2/quota_definitions/'
 
     #running cf login shell command for login and running commands
     process = subprocess.Popen(shlex.split(login_command), stdout=subprocess.PIPE)
@@ -81,25 +88,44 @@ for foundry in foundry_list:
         foundry_id = myresult[0][0]
         print('foundry value', myresult[0][0])
     else:
-        mycursor.execute(insert_foundry_sql, (foundry,))
+        mycursor.execute(insert_foundry_sql, (foundry,0,time.strftime('%Y-%m-%d %H:%M:%S')))
         foundry_id = mycursor.lastrowid
         db.commit()
     for org_obj in org_json['resources']:
         org_id = 0 
+        quota_cmd = get_org_quota+org_obj['entity']['quota_definition_guid']
+        token_proc = subprocess.Popen(shlex.split('cf oauth-token'), stdout=subprocess.PIPE)
+        token = token_proc.communicate()[0]
+        token = token.replace("\n", "")
+        params = urllib.urlencode({})
+        headers = {"Authorization": token}
+        conn = httplib.HTTPSConnection(flist[5])
+        conn.request("GET", "/proxy/api/v2/organizations/"+org_obj['metadata']['guid']+"/memory_usage", params, headers)
+        response = conn.getresponse()
+        print(response.status, response.reason)
+        data_asigned_quota = response.read()
+        conn.close()
+        data_asigned_quota_json = json.loads(data_asigned_quota)
+        print("quota asigned "+ str(data_asigned_quota))
+        '''process = subprocess.Popen(shlex.split(quota_cmd), stdout=subprocess.PIPE)
+        raw_org_quota = process.communicate()[0]
+        org_quota_json = json.loads(raw_org_quota)
+        print(org_quota_json)'''
+        foundry_avail_mem = foundry_avail_mem + data_asigned_quota_json['memory_usage_in_mb']
         mycursor.execute(get_org_id_sql, (org_obj['entity']['name'], foundry_id,))
         myresult = mycursor.fetchall()
         if(len(myresult) == 1):
             org_id = myresult[0][0]
             print('org id found value', myresult[0][0])
         else:
-            mycursor.execute(insert_org_sql, (org_obj['entity']['name'],foundry_id))
+            mycursor.execute(insert_org_sql, (org_obj['entity']['name'],foundry_id, 0,time.strftime('%Y-%m-%d %H:%M:%S')))
             org_id = mycursor.lastrowid
             db.commit()
         cf_list_spaces_command = 'cf curl '+org_obj['entity']['spaces_url']+'?results-per-page=100'
         process = subprocess.Popen(shlex.split(cf_list_spaces_command), stdout=subprocess.PIPE)
         raw_spaces_json = process.communicate()[0]
         spaces_json = json.loads(raw_spaces_json)
-
+        
         for space_obj in spaces_json['resources']:
             space_id = 0 
             mycursor.execute(get_space_id_sql, (space_obj['entity']['name'],org_id,))
@@ -108,7 +134,7 @@ for foundry in foundry_list:
                 space_id = myresult[0][0]
                 print('space id found value', myresult[0][0])
             else:
-                mycursor.execute(insert_space_sql, (space_obj['entity']['name'],org_id))
+                mycursor.execute(insert_space_sql, (space_obj['entity']['name'],org_id, 0,time.strftime('%Y-%m-%d %H:%M:%S')))
                 space_id = mycursor.lastrowid
                 db.commit()
             worksheet.set_row(row, None, bold)
@@ -135,10 +161,6 @@ for foundry in foundry_list:
             row = row + 9
             resources = apps_json['resources']
             sorted_resources = sorted(resources, key=lambda k: k['entity'].get('memory', 0), reverse=True)
-
-            token_proc = subprocess.Popen(shlex.split('cf oauth-token'), stdout=subprocess.PIPE)
-            token = token_proc.communicate()[0]
-            token = token.replace("\n", "")
             for app in sorted_resources:
                 params = urllib.urlencode({})
                 headers = {"Authorization": token}
@@ -174,7 +196,9 @@ for foundry in foundry_list:
                     mycursor.execute(update_app_sql, (app['entity']['name'],app['entity']['memory'],app['entity']['instances'],app['entity']['disk_quota'],app['entity']['state'],cpu_total,mem_total,disk_total, space_id, app_id, space_id))
                     db.commit()
                 else:'''
-                mycursor.execute(insert_app_sql, (app['entity']['name'],app['entity']['memory'],app['entity']['instances'],app['entity']['disk_quota'],app['entity']['state'],cpu_total,mem_total,disk_total, space_id))
+                app_mem_per = 100 * (bitmath.Byte(mem_total).to_MB().value/app['entity']['memory'])
+                foundry_app_mem_usage = foundry_app_mem_usage + bitmath.Byte(mem_total).to_GB().value
+                mycursor.execute(insert_app_sql, (app['entity']['name'],app['entity']['memory'],app['entity']['instances'],app['entity']['disk_quota'],app['entity']['state'],cpu_total,mem_total,disk_total, space_id, app_mem_per,time.strftime('%Y-%m-%d %H:%M:%S')))
                 app_id = mycursor.lastrowid
                 db.commit()
 
@@ -189,6 +213,12 @@ for foundry in foundry_list:
                     worksheet.write(row, col+6, mem_gb)
                     worksheet.write(row, col+7, disk_gb)
                 row += 1
+    print(foundry_app_mem_usage)
+    print(foundry_avail_mem)
+    foundry_used_per = 100 * (foundry_app_mem_usage/foundry_avail_mem)  
+    print(foundry_used_per)
+    mycursor.execute(update_foundry_mempry_percent, (foundry_used_per,time.strftime('%Y-%m-%d %H:%M:%S')))
+    db.commit()
 workbook.close()
 
 filename = 'top_apps_'+timestamp_str+'.xlsx'
